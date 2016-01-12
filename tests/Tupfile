@@ -1,0 +1,7 @@
+include_rules
+
+CXX = clang++
+#CXX = g++
+CXXFLAGS += -I../include
+
+: test_range.cc |> !cxxld |>
