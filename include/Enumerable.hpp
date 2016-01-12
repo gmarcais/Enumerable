@@ -25,18 +25,62 @@ public:
   bool operator()(const T& x) const { return !m_block(x); }
 };
 
+// Helper class to get a function argument type
+template<typename T>
+struct function_traits;
+
+template<typename R, typename... Args>
+struct function_traits<std::function<R(Args...)>> {
+    static const size_t nargs = sizeof...(Args);
+
+    typedef R result_type;
+
+    template<size_t i>
+    struct arg {
+        typedef typename std::tuple_element<i, std::tuple<Args...>>::type type;
+    };
+};
+
+template<typename Block, typename T, size_t N = std::tuple_size<T>::value, size_t... Ns>
+struct apply : public apply<Block, T, N-1, N-1, Ns...>
+{ };
+
+template<typename Block, typename T, size_t... Ns>
+struct apply<Block, T, 0, Ns...> {
+  static auto call(Block b, T&& t) { return b(std::get<Ns>(std::forward<T>(t))...); }
+  template<typename U>
+  static auto call2(Block b, U&& x, T&& t) { return b(x, std::get<Ns>(std::forward<T>(t))...); }
+};
+
 // Base. It uses CRTP. A derived class must have a prefix ++ operator,
 // the dereference * operator and a cast to bool operator, returning
 // false if the enumerable has no more elements.
 template<typename Derived, typename T>
 class Base {
+protected:
+  template<typename Block, typename... Ts>
+  inline auto call_block(Block b, std::tuple<Ts...>&& x) {
+    return apply<Block, std::tuple<Ts...>>::call(b, std::forward<decltype(x)>(x));
+  }
+  template<typename Block, typename U, typename... Ts>
+  inline auto call_block(Block b, U&& a, std::tuple<Ts...>&& x) {
+    return apply<Block, std::tuple<Ts...>>::call2(b, std::forward<U>(a), std::forward<decltype(x)>(x));
+  }
+  template<typename Block, typename U>
+  inline auto call_block(Block b, U&& x) {
+    return b(std::forward<U>(x));
+  }
+  template<typename Block, typename U, typename V>
+  inline auto call_block(Block b, U&& x, U&& y) {
+    return b(std::forward<U>(x), std::forward<V>(y));
+  }
 public:
   typedef T value_type;
   template<typename Block>
   void each(Block b) {
     auto& self = *static_cast<Derived*>(this);
     for( ; self; ++self)
-      b(*self);
+      call_block(b, *self);
   }
 
   template<typename Block>
@@ -46,19 +90,25 @@ public:
   }
 
   template<typename Block, typename U>
-  U inject(U start, Block b) {
+  U inject(U&& start, Block b) {
     auto& self = *static_cast<Derived*>(this);
-    auto  acc  = start;
+    auto  acc  = std::forward<U>(start);
     for( ; self; ++self)
       acc = b(acc, *self);
     return acc;
   }
 
+  // template<typename Block>
+  // auto inject(Block b) {
+  //   typedef typename function_traits<Block>::template arg<0>::type arg0;
+  //   return inject(arg0(), b);
+  // }
+
   template<typename Block>
   bool all(Block b) {
     auto& self = *static_cast<Derived*>(this);
     for( ; self; ++self)
-      if(!b(*self))
+      if(!call_block(b, *self))
         return false;
     return true;
   }
@@ -67,7 +117,7 @@ public:
   bool any(Block b) {
     auto& self = *static_cast<Derived*>(this);
     for( ; self; ++self)
-      if(b(*self))
+      if(call_block(b, *self))
         return true;
      return false;
   }
@@ -80,7 +130,7 @@ public:
   }
 
   template<typename U>
-  size_t count(U x) {
+  size_t count(const U& x) {
     auto& self = *static_cast<Derived*>(this);
     size_t res = 0;
     for( ; self; ++self)
@@ -94,9 +144,9 @@ public:
     return self;
   }
 
-  value_type max() {
+  value_type max(value_type&& x = typename Derived::value_type()) {
     auto& self = *static_cast<Derived*>(this);
-    auto res = typename Derived::value_type();
+    auto res = std::forward<value_type>(x);
     if(self) {
       res  = *self;
       for(++self; self; ++self)
@@ -105,9 +155,9 @@ public:
     return res;
   }
 
-  value_type min() {
+  value_type min(value_type&& x = typename Derived::value_type()) {
     auto& self = *static_cast<Derived*>(this);
-    auto res = typename Derived::value_type();
+    auto res = std::forward<value_type>(x);
     if(self) {
       res  = *self;
       for(++self; self; ++self)
@@ -252,7 +302,7 @@ class Cat : public Base<Cat<Enums...>, typename std::common_type<Enums...>::type
 public:
   typedef typename enum_type::value_type value_type;
   Cat(Enums... es) : m_i(0), m_enums({{es...}}) { }
-  operator bool() const { return m_i < N; }
+  operator bool() const { return m_i < N && m_enums[m_i] ; }
   void operator++() {
     ++m_enums[m_i];
     while(!m_enums[m_i] && m_i < N)
@@ -310,13 +360,13 @@ template<typename T> struct inc<T, 0> {
 };
 
 // Create a tuple from the results of calling operator* on the elements of tuple T
-template<typename T, typename U, size_t N = std::tuple_size<T>::value, size_t... S> struct star {
-  static U call(const T& e) {
-    return star<T, U, N - 1, N - 1, S...>::call(e);
-  }
-};
-template<typename T, typename U, size_t... S> struct star<T, U, 0, S...> {
-  static U call(const T& e) {
+template<typename T, size_t N = std::tuple_size<T>::value, size_t... S>
+struct star : public star<T, N-1, N-1, S...>
+{ };
+
+template<typename T, size_t... S>
+struct star<T, 0, S...> {
+  static auto call(const T& e) {
     return std::make_tuple(*std::get<S>(e)...);
   }
 };
@@ -329,7 +379,7 @@ public:
   Zip(Enums... es) : m_enums(es...) { }
   operator bool() const { return more<enum_type>::call(m_enums); }
   void operator++() { inc<enum_type>::call(m_enums); }
-  value_type operator*() const { return star<enum_type, value_type>::call(m_enums); }
+  value_type operator*() const { return star<enum_type>::call(m_enums); }
 
  protected:
   enum_type          m_enums;

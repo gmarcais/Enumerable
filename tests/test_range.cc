@@ -66,8 +66,15 @@ int main(int argc, char *argv[]) {
   std::cout << '\n';
 
   { std::ifstream is("include/Enumerable.hpp");
-    for(auto it : zip(lines(is), range(-100)))
+    for(auto it : zip(lines(is), range(1, 5)))
       std::cout << std::get<1>(it) << ": " << std::get<0>(it) << '\n';
   }
+
+  { std::ifstream is("include/Enumerable.hpp");
+    zip(lines(is), range(-5, -1)).each([](const auto& l, auto i) {
+        std::cout << i << ": " << l << '\n';
+      });
+  }
+
   return 0;
 }
