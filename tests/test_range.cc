@@ -27,28 +27,36 @@ int main(int argc, char *argv[]) {
   std::vector<int> v = { 1, 3, 5, 9, 3 };
   std::cout << container(v).inject(1, [](int a, int i) { return a * i; }) << '\n';
 
-  std::cout << container(v).all([](int i) { return i % 2 == 1; }) << '\n';
-  std::cout << container(v).any([](int i) { return i % 2 == 0; }) << '\n';
-  std::cout << container(v).count(3) << '\n';
-  std::cout << container(v).max() << ' ' << container(v).min() << '\n';
+  std::cout << "-----\n"
+            << zip(times(5), range(5, 10)).inject(0, [](auto a, auto x, auto y) { return a + x * y; })
+            << '\n';
 
-  std::cout << container(v).select([](int i) { return i > 3; }).count() << '\n';
-  std::cout << container(v).reject([](int i) { return i > 3; }).count() << '\n';
+  std::cout << "-----\n"
+            << container(v).all([](int i) { return i % 2 == 1; }) << '\n'
+            << container(v).any([](int i) { return i % 2 == 0; }) << '\n'
+            << container(v).count(3) << '\n'
+            << container(v).max() << ' ' << container(v).min() << '\n'
+            << container(v).select([](int i) { return i > 3; }).count() << '\n'
+            << container(v).reject([](int i) { return i > 3; }).count() << '\n';
 
   { std::ifstream is("include/Enumerable.hpp");
-    std::cout << lines(is).count() << '\n';
+    std::cout << "-----\n"
+              << lines(is).count() << '\n';
   }
 
   { std::ifstream is("include/Enumerable.hpp");
-    std::cout << lines(is).map([](const std::string& l) { return l.size(); }).max() << '\n';
+    std::cout << "-----\n"
+              << lines(is).map([](const std::string& l) { return l.size(); }).max() << '\n';
   }
 
   { std::ifstream is("include/Enumerable.hpp");
-    std::cout << lines(is).map([](const auto& l) { return l.size(); }).min() << '\n';
+    std::cout << "-----\n"
+              << lines(is).map([](const auto& l) { return l.size(); }).min() << '\n';
   }
 
   { std::ifstream is("include/Enumerable.hpp");
-    std::cout << lines(is).select([](const std::string& l) { return l.size() > 0; }).count() << '\n';
+    std::cout << "-----\n"
+              << lines(is).select([](const std::string& l) { return l.size() > 0; }).count() << '\n';
   }
 
   { std::ifstream is("include/Enumerable.hpp");

@@ -64,14 +64,14 @@ protected:
   }
   template<typename Block, typename U, typename... Ts>
   inline auto call_block(Block b, U&& a, std::tuple<Ts...>&& x) {
-    return apply<Block, std::tuple<Ts...>>::call2(b, std::forward<U>(a), std::forward<decltype(x)>(x));
+    return apply<Block, std::tuple<Ts...>>::call2(b, std::forward<U>(a), std::forward<std::tuple<Ts...>>(x));
   }
   template<typename Block, typename U>
   inline auto call_block(Block b, U&& x) {
     return b(std::forward<U>(x));
   }
   template<typename Block, typename U, typename V>
-  inline auto call_block(Block b, U&& x, U&& y) {
+  inline auto call_block(Block b, U&& x, V&& y) {
     return b(std::forward<U>(x), std::forward<V>(y));
   }
 public:
@@ -94,7 +94,7 @@ public:
     auto& self = *static_cast<Derived*>(this);
     auto  acc  = std::forward<U>(start);
     for( ; self; ++self)
-      acc = b(acc, *self);
+      acc = call_block(b, acc, *self);
     return acc;
   }
 
