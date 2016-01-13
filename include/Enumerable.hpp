@@ -47,9 +47,9 @@ struct apply : public apply<Block, T, N-1, N-1, Ns...>
 
 template<typename Block, typename T, size_t... Ns>
 struct apply<Block, T, 0, Ns...> {
-  static auto call(Block b, T&& t) { return b(std::get<Ns>(std::forward<T>(t))...); }
+  static auto call(Block b, const T& t) { return b(std::get<Ns>(t)...); }
   template<typename U>
-  static auto call2(Block b, U&& x, T&& t) { return b(x, std::get<Ns>(std::forward<T>(t))...); }
+  static auto call2(Block b, U&& x, const T& t) { return b(x, std::get<Ns>(t)...); }
 };
 
 // Base. It uses CRTP. A derived class must have a prefix ++ operator,
@@ -59,20 +59,20 @@ template<typename Derived, typename T>
 class Base {
 protected:
   template<typename Block, typename... Ts>
-  inline auto call_block(Block b, std::tuple<Ts...>&& x) {
-    return apply<Block, std::tuple<Ts...>>::call(b, std::forward<decltype(x)>(x));
+  inline auto call_block(Block b, const std::tuple<Ts...>& x) {
+    return apply<Block, std::tuple<Ts...>>::call(b, x);
   }
   template<typename Block, typename U, typename... Ts>
-  inline auto call_block(Block b, U&& a, std::tuple<Ts...>&& x) {
-    return apply<Block, std::tuple<Ts...>>::call2(b, std::forward<U>(a), std::forward<std::tuple<Ts...>>(x));
+  inline auto call_block(Block b, U&& a, const std::tuple<Ts...>& x) {
+    return apply<Block, std::tuple<Ts...>>::call2(b, std::forward<U>(a), x);
   }
   template<typename Block, typename U>
-  inline auto call_block(Block b, U&& x) {
-    return b(std::forward<U>(x));
+  inline auto call_block(Block b, const U& x) {
+    return b(x);
   }
   template<typename Block, typename U, typename V>
-  inline auto call_block(Block b, U&& x, V&& y) {
-    return b(std::forward<U>(x), std::forward<V>(y));
+  inline auto call_block(Block b, U&& x, const V& y) {
+    return b(std::forward<U>(x), y);
   }
 public:
   typedef T value_type;
@@ -106,7 +106,9 @@ public:
 
   template<typename Output>
   Output output(Output it) {
-    this->each([&](auto&& x) { *it = std::forward<T>(x); ++it; });
+    auto& self = *static_cast<Derived*>(this);
+    for( ; self; ++self, ++it)
+      *it = *self;
     return it;
   }
 
