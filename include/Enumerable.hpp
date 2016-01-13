@@ -104,6 +104,15 @@ public:
   //   return inject(arg0(), b);
   // }
 
+  template<typename Output>
+  Output output(Output it) {
+    this->each([&](auto&& x) { *it = std::forward<T>(x); ++it; });
+    return it;
+  }
+
+  template<typename Container>
+  auto collect(Container& c) { return output(std::back_inserter(c)); }
+
   template<typename Block>
   bool all(Block b) {
     auto& self = *static_cast<Derived*>(this);
@@ -384,9 +393,6 @@ public:
  protected:
   enum_type          m_enums;
 };
-template<typename... Enums>
-Zip<Enums...> zip(Enums... es) { return Zip<Enums...>(es...); }
-
 } // namespace imp
 
 // Functions available directly in Enumerable namespace
@@ -422,6 +428,17 @@ imp::Cat<Enums...> cat(Enums... es) {
 template<typename... Enums>
 imp::Zipa<Enums...> zipa(Enums... es) { return imp::Zipa<Enums...>(es...); }
 
+template<typename... Enums>
+imp::Zip<Enums...> zip(Enums... es) { return imp::Zip<Enums...>(es...); }
+
+namespace imp {
+// Numeric operator become maps
+template<typename Derived, typename T, typename U>
+auto operator+(Base<Derived, T> e, U x) { return e.map([=](T&& y) { return y + x; }); }
+// template<typename Derived, typename T, typename U>
+// auto operator+(U x, Base<Derived, T> e) { return e.map([=](T&& y) { return x + y; }); }
+
+} // namespace imp
 
 } // namespace Enumerable
 

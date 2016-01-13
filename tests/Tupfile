@@ -1,7 +1,8 @@
 include_rules
 
-CXX = clang++
-#CXX = g++
-CXXFLAGS += -I../include
+#CXX = clang++
+CXX = g++
+CXXFLAGS += -I../include -ggdb -O0
+LDFLAGS += -ggdb
 
 : test_range.cc |> !cxxld |>

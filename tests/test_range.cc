@@ -17,6 +17,11 @@ int main(int argc, char *argv[]) {
   times(5)
     .map([](int i) { return 2 * i; })
     .each([](int i) { std::cout << i << '\n'; });
+  //  static_assert(decltype(times(5) + 10)::toto, "Coucou");
+  std::cout << "----- operator+\n";
+  std::cout << (times(5) + 10).max() << std::endl;
+  auto t = times(5);
+  std::cout << (t + 10).min() << ' ' << (t + 10).max() << std::endl;
   std::cout << "-----\n";
   for(auto it : range(2, 6))
     std::cout << it << '\n';
