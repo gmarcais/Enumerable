@@ -1,0 +1,12 @@
+*.in
+configure
+.tup
+config.sub
+depcomp
+install-sh
+missing
+aclocal.m4
+compile
+config.guess
+config.h.in~
+test-driver
