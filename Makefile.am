@@ -17,6 +17,8 @@ TESTS =
 TEST_EXTENSIONS =
 BUILT_SOURCES =
 
+include_HEADERS = include/Enumerable.hpp
+
 #########
 # Tests #
 #########
