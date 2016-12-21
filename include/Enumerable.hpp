@@ -292,7 +292,7 @@ public:
   typedef const std::string value_type;
   IstreamLines(std::istream& is) : m_is(is) { operator++(); }
   operator bool() const { return m_have_line; }
-  void operator++() { m_have_line = std::getline(m_is, m_line); }
+  void operator++() { m_have_line = static_cast<bool>(std::getline(m_is, m_line)); }
   value_type& operator*() const { return m_line; }
 };
 
